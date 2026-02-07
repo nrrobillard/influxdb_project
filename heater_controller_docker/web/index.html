@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Heater Controller</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 1rem; max-width: 720px; }
+    label { display:block; margin-top: .5rem; }
+    input { width: 6rem; padding: .25rem; }
+    button { margin-top: .5rem; padding: .4rem .8rem; }
+    .status { margin-top: 1rem; color: #333; }
+  </style>
+</head>
+<body>
+  <h1>Heater Thresholds</h1>
+  <p><a id="grafana_link" href="#" target="_blank">View Grafana Dashboard</a></p>
+  <div>
+    <label>Control sensor
+      <select id="control_sensor"></select>
+    </label>
+    <button id="save_sensor">Set Control Sensor</button>
+    <label>ON threshold (°F)
+      <input id="on" type="number" step="0.1">
+    </label>
+    <label>OFF threshold (°F)
+      <input id="off" type="number" step="0.1">
+    </label>
+    <button id="save">Save</button>
+    <button id="refresh">Refresh</button>
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    const status = id => document.getElementById('status').textContent = id;
+    
+    // Set Grafana link with dynamic hostname
+    const hostname = window.location.hostname;
+    const grafanaUrl = `http://${hostname}:3000/d/deda8vrj0wf0gd/nickdash?orgId=1&from=now-5m&to=now&timezone=browser&var-interval=1s`;
+    document.getElementById('grafana_link').href = grafanaUrl;
+    
+    async function load() {
+      try {
+        const res = await fetch('/thresholds');
+        if (!res.ok) throw new Error(res.statusText);
+        const data = await res.json();
+        document.getElementById('on').value = data.on;
+        document.getElementById('off').value = data.off;
+        status('Loaded thresholds.');
+      } catch (e) {
+        status('Load error: ' + e.message);
+      }
+      await loadSensors();
+    }
+    async function loadSensors() {
+      try {
+        const optsRes = await fetch('/sensor_options');
+        const opts = await optsRes.json();
+        const sel = document.getElementById('control_sensor');
+        sel.innerHTML = '';
+        opts.options.forEach(o => {
+          const opt = document.createElement('option');
+          opt.value = o;
+          opt.textContent = o;
+          sel.appendChild(opt);
+        });
+        const curRes = await fetch('/control_sensor');
+        const cur = await curRes.json();
+        sel.value = cur.control_sensor;
+        status('Loaded sensor options.');
+      } catch (e) {
+        status('Sensor load error: ' + e.message);
+      }
+    }
+    async function saveSensor() {
+      const sel = document.getElementById('control_sensor');
+      const sensor = sel.value;
+      try {
+        const res = await fetch('/control_sensor', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({control_sensor: sensor})
+        });
+        if (!res.ok) throw new Error(res.statusText);
+        const data = await res.json();
+        document.getElementById('control_sensor').value = data.control_sensor;
+        status('Control sensor saved.');
+      } catch (e) {
+        status('Save sensor error: ' + e.message);
+      }
+    }
+    async function save() {
+      const on = parseFloat(document.getElementById('on').value);
+      const off = parseFloat(document.getElementById('off').value);
+      try {
+        const res = await fetch('/thresholds', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({on, off})
+        });
+        if (!res.ok) throw new Error(res.statusText);
+        const data = await res.json();
+        document.getElementById('on').value = data.on;
+        document.getElementById('off').value = data.off;
+        status('Saved.');
+      } catch (e) {
+        status('Save error: ' + e.message);
+      }
+    }
+    document.getElementById('save').addEventListener('click', save);
+    document.getElementById('save_sensor').addEventListener('click', saveSensor);
+    document.getElementById('refresh').addEventListener('click', load);
+    load();
+  </script>
+</body>
+</html>

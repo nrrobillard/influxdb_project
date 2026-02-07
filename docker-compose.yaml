@@ -1,0 +1,102 @@
+
+services:
+  mosquitto:
+      image: eclipse-mosquitto
+      container_name: mosquitto
+      restart: unless-stopped
+      ports:
+        - "1883:1883"
+      volumes:
+        - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+        - ./mosquitto/config/password.txt:/mosquitto/config/password.txt
+        - ./mosquitto/data:/mosquitto/data
+        - ./mosquitto/log:/mosquitto/log
+
+  influxdb2:
+    image: influxdb:2
+    container_name: influxdb2
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb2-data:/var/lib/influxdb2
+      - influxdb2-config:/etc/influxdb2
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=nick
+      - DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUX_PASSWORD}
+      - DOCKER_INFLUXDB_INIT_ORG=ORG_NAME
+      - DOCKER_INFLUXDB_INIT_BUCKET=nickTest
+  
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: grafana
+    depends_on:
+      - influxdb2
+    ports:
+      - "3000:3000"
+    volumes:
+      - 'grafana_storage:/var/lib/grafana'
+    environment:
+      - GF_SECURITY_ADMIN_USER=nick
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+
+  telegraf:
+    build: ./telegraf
+    container_name: telegraf
+    depends_on:
+      - influxdb2
+    restart: unless-stopped
+    environment:
+      - INFLUX_URL=http://influxdb2:8086
+      - INFLUX_ORG=ORG_NAME
+      - INFLUX_BUCKET=nickTest
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf.template:ro
+      - ./influx_config.py:/config/influx_config.py:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/localtime:/etc/localtime:ro
+
+  # metrics_publisher_py: (removed) - using Telegraf for system metrics
+
+  mqtt_to_influx:
+    image: mqtt_to_influx
+    container_name: mqtt_to_influx
+    depends_on:
+      - influxdb2
+      - mosquitto
+    volumes:
+      - ./influx_config.py:/app/influx_config.py:ro
+
+  weather_to_influx:
+    image: weather_to_influx
+    container_name: weather_to_influx
+    depends_on:
+      - influxdb2
+    volumes:
+      - ./influx_config.py:/app/influx_config.py:ro
+
+  heater_controller:
+    image: heater_controller
+    container_name: heater_controller
+    depends_on:
+      - mosquitto
+      - influxdb2
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./influx_config.py:/app/influx_config.py:ro
+
+  # plant_watering:   
+  #   image: plant_watering_docker
+  #   container_name: plant_watering
+  #   volumes: 
+  #     - /home/nick/influxdb_project/plant_watering_controller_docker/last_plant_watering_times.yaml:/app/last_plant_watering_times.yaml
+  #     - /etc/timezone:/etc/timezone:ro
+  #     - /etc/localtime:/etc/localtime:ro
+    
+
+volumes:
+  influxdb2-data: {}
+  influxdb2-config: {}
+  grafana_storage: {}

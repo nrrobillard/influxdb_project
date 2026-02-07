@@ -1,0 +1,8 @@
+plant1:
+   air: 702
+   water: 317
+   dampSoil: 355
+plant2:
+   air: 725
+   water: 331
+   dampSoil: 348

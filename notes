@@ -1,0 +1,3 @@
+Grafana <-> Influx connection:
+the key is, under Custom HTTP Headers, add "Authorization" as the Header, and "Token XXXXXXXXXXXXX" as the Value. where XXXX is an all access token generated from the influxdb wepbage
+https://community.influxdata.com/t/is-it-possible-to-make-influxql-query-to-influxdb-v2-7-4/35039/8?u=grant1

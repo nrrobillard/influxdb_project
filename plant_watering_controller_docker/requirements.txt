@@ -1,0 +1,3 @@
+# requirement.txt
+paho-mqtt==2.1.0
+pyyaml==5.4.1
