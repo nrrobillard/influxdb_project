@@ -1,12 +1,12 @@
 #!/bin/sh
 set -e
 TOKEN=""
-CONFIG_PATH=/config/influx_config.py
-if [ -f "$CONFIG_PATH" ]; then
-  TOKEN=$(awk -F\" '/INFLUX_TOKEN/ {print $2; exit}' "$CONFIG_PATH")
+ENV_PATH=/config/.env.local
+if [ -f "$ENV_PATH" ]; then
+  TOKEN=$(grep '^INFLUX_TOKEN=' "$ENV_PATH" | cut -d'=' -f2)
 fi
 if [ -z "$TOKEN" ]; then
-  echo "INFLUX token not found in $CONFIG_PATH; ensure file exists and defines INFLUX_TOKEN"
+  echo "INFLUX_TOKEN not found in $ENV_PATH; ensure file exists and defines INFLUX_TOKEN"
   exit 1
 fi
 # replace placeholder in template and write final config

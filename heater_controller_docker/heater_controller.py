@@ -16,6 +16,7 @@ import logging
 import os
 
 
+
 log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
     level=log_level,
@@ -27,6 +28,8 @@ logging.basicConfig(
 mqtt_username = mqtt_config.mqtt_username
 mqtt_password = mqtt_config.mqtt_password
 mqtt_broker_ip = mqtt_config.mqtt_broker_ip
+
+logging.info(f"MQTT Configuration: broker={mqtt_broker_ip}, username={'set' if mqtt_username else 'not set'}")
 
 
 # influx info

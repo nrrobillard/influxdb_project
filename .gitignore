@@ -2,6 +2,7 @@
 secrets.py
 secrets.local.py
 !secrets.py.template
+.env.local
 
 # Local files
 TODO.txt
@@ -47,4 +48,4 @@ Thumbs.db
 # Logs
 *.log
 log/
-.env.local
+

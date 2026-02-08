@@ -41,7 +41,7 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
 
   telegraf:
-    build: ./telegraf
+    image: telegraf_2
     container_name: telegraf
     depends_on:
       - influxdb2
@@ -50,14 +50,15 @@ services:
       - INFLUX_URL=http://influxdb2:8086
       - INFLUX_ORG=ORG_NAME
       - INFLUX_BUCKET=nickTest
+      - INFLUX_TOKEN=${INFLUX_TOKEN}
     volumes:
-      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf.template:ro
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
       - ./influx_config.py:/config/influx_config.py:ro
+      - ./config_secrets.py:/app/config_secrets.py:ro
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /etc/localtime:/etc/localtime:ro
 
-  # metrics_publisher_py: (removed) - using Telegraf for system metrics
 
   mqtt_to_influx:
     image: mqtt_to_influx
@@ -67,6 +68,12 @@ services:
       - mosquitto
     volumes:
       - ./influx_config.py:/app/influx_config.py:ro
+      - ./config_secrets.py:/app/config_secrets.py:ro
+    environment:
+      - INFLUX_TOKEN=${INFLUX_TOKEN}
+      - MQTT_BROKER_IP=${MQTT_BROKER_IP}
+      - MQTT_USERNAME=${MQTT_USERNAME}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}  
 
   weather_to_influx:
     image: weather_to_influx
@@ -75,6 +82,9 @@ services:
       - influxdb2
     volumes:
       - ./influx_config.py:/app/influx_config.py:ro
+      - ./config_secrets.py:/app/config_secrets.py:ro
+    environment:
+      - OPEN_WEATHER_MAP_TOKEN=${OPEN_WEATHER_MAP_TOKEN}
 
   heater_controller:
     image: heater_controller
@@ -86,6 +96,24 @@ services:
       - "8000:8000"
     volumes:
       - ./influx_config.py:/app/influx_config.py:ro
+      - ./config_secrets.py:/app/config_secrets.py:ro
+    environment:
+      - INFLUX_TOKEN=${INFLUX_TOKEN}
+      - MQTT_BROKER_IP=${MQTT_BROKER_IP}
+      - MQTT_USERNAME=${MQTT_USERNAME}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}  
+
+
+  # metrics_publisher:
+  #   image: metrics_publisher
+  #   container_name: metrics_publisher
+  #   depends_on:
+  #     - influxdb2
+  #   volumes:
+  #     - ./influx_config.py:/app/influx_config.py:ro 
+  #     - ./config_secrets.py:/app/config_secrets.py:ro
+  #   environment:
+  #     - INFLUX_TOKEN=${INFLUX_TOKEN}
 
   # plant_watering:   
   #   image: plant_watering_docker
